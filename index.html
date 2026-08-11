@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Bonus Calculator (Ver. Aug-26)</title>
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7fb; --line:#e2e5ee; --ink:#171a23; --muted:#5c6478;
+  --brand:#4A45C0; --accent:#E82078; --good:#1c8c5a; --warn:#b4531a; --bad:#c0392b;
+  --chip:#eceefb; --shadow:0 1px 3px rgba(16,20,40,.09),0 8px 24px rgba(16,20,40,.05);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12141c; --surface:#1a1d28; --line:#2b3040; --ink:#eef0f6; --muted:#9aa2b8;
+    --brand:#6F68DE; --accent:#EE4189; --good:#43b783; --warn:#e0894b; --bad:#f0715f;
+    --chip:#242940; --shadow:0 1px 3px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12141c; --surface:#1a1d28; --line:#2b3040; --ink:#eef0f6; --muted:#9aa2b8;
+  --brand:#6F68DE; --accent:#EE4189; --good:#43b783; --warn:#e0894b; --bad:#f0715f;
+  --chip:#242940; --shadow:0 1px 3px rgba(0,0,0,.5),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:0 0 7rem; background:var(--bg); color:var(--ink);
+  /* Google Sans first. It carries no Thai glyphs, and the baht sign ฿ (U+0E3F) lives in
+     the Thai block, so a Thai face MUST stay in the stack or every ฿ renders as tofu. */
+  font-family:"Google Sans","Google Sans Text","Product Sans","Noto Sans Thai",
+              "Leelawadee UI",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:880px;margin:0 auto;padding:1.25rem 1rem}
+h1{font-size:1.35rem;line-height:1.3;margin:0 0 .15rem}
+.th{color:var(--muted);font-size:.9rem}
+header .th{margin-bottom:.5rem}
+.sub{color:var(--muted);font-size:.86rem;margin:.4rem 0 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:1rem;margin:1rem 0;box-shadow:var(--shadow)}
+.card h2{font-size:1rem;margin:0 0 .1rem;letter-spacing:.01em}
+.card h2 span{font-weight:400;color:var(--muted)}
+label{display:block;font-size:.8rem;color:var(--muted);margin:0 0 .25rem}
+select,input{width:100%;padding:.6rem .55rem;font:inherit;font-size:.95rem;color:var(--ink);
+  background:var(--bg);border:1px solid var(--line);border-radius:9px}
+input[type=number]{-moz-appearance:textfield}
+.seg{display:flex;gap:.4rem}
+.seg button{flex:1 1 0;min-width:0;padding:.6rem .3rem;font:inherit;font-size:.9rem;cursor:pointer;
+  background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:9px}
+.seg button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.btn{width:100%;margin-top:.75rem;padding:.7rem;font:inherit;font-weight:600;cursor:pointer;
+  background:var(--brand);color:#fff;border:0;border-radius:10px}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:400}
+/* entry grid — one row per sign-up, edited in place */
+.gwrap{margin:.7rem 0 0}
+/* fluid columns — minmax(0,…) lets them shrink so the grid never escapes the card */
+.ghead,.grow{display:grid;gap:.4rem;
+  grid-template-columns:minmax(0,.8fr) 48px minmax(0,1.9fr) minmax(0,.72fr)
+                        minmax(0,1.05fr) minmax(0,.72fr) 52px 30px}
+.ghead{padding:0 0 .35rem;font-size:.71rem;font-weight:600;color:var(--muted)}
+.grow{align-items:center;padding:.32rem 0;border-top:1px solid var(--line)}
+.grow label{display:block;margin:0}
+.grow select,.grow input{padding:.44rem .35rem;font-size:.85rem;border-radius:7px}
+.cl{display:none;font-size:.7rem;color:var(--muted);margin-bottom:.15rem}
+.calc{font-size:.85rem;font-variant-numeric:tabular-nums;padding:.44rem .4rem;text-align:right;
+  background:var(--chip);border-radius:7px;color:var(--ink2,var(--ink))}
+.calc.pts{font-weight:700}
+.calc.pts.zero{color:var(--warn);font-weight:400}
+.x{width:100%;background:none;border:1px solid var(--line);color:var(--muted);font-size:1rem;
+  cursor:pointer;border-radius:7px;padding:.3rem 0;line-height:1}
+.x:hover{border-color:var(--accent);color:var(--accent)}
+.empty{color:var(--muted);font-size:.88rem;padding:.7rem 0}
+.rno{display:none}
+.btnrow{display:flex;gap:.5rem}
+.btnrow .btn{margin-top:.75rem}
+.btnrow .btn.ghost{flex:0 0 33%}
+/* on a phone each sign-up becomes its own numbered card, so rows never run together */
+@media(max-width:719px){
+  .ghead{display:none}
+  .grow{grid-template-columns:1fr 1fr;gap:.55rem;padding:.7rem .75rem;margin-bottom:.5rem;
+    background:var(--bg);border:1px solid var(--line);border-radius:10px}
+  .cl{display:block}
+  .grow .wide{grid-column:1/-1}
+  .rno{display:block;grid-column:1;grid-row:1;align-self:center;
+    font-size:.85rem;font-weight:700;color:var(--muted)}
+  .x{grid-column:2;grid-row:1;width:auto;justify-self:end;padding:.25rem .75rem}
+}
+/* result summary — same shape as the previous calculator: verdict, then three numbers */
+.verdict{font-size:1rem;font-weight:600;padding:.6rem .8rem;border-radius:10px;
+  background:var(--chip);margin:.6rem 0 .9rem;color:var(--muted)}
+.verdict.ok{color:var(--good)}
+.verdict.no{color:var(--warn)}
+.verdict small{display:block;font-weight:400;font-size:.83rem;color:var(--muted);margin-top:.15rem}
+.sums .s{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+  padding:.5rem .1rem;border-bottom:1px solid var(--line)}
+.sums .s:last-child{border-bottom:0}
+.sums .s b{font-size:1.15rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sums .s.tot b{font-size:1.5rem}
+.sums b.green{color:var(--good)}
+.sums b.orange{color:var(--warn)}
+.work{margin:.85rem 0 0;font-size:.85rem;color:var(--muted);line-height:1.65}
+.work b{color:var(--ink);font-variant-numeric:tabular-nums}
+.big{position:sticky;bottom:0;background:var(--brand);color:#fff;border-radius:14px 14px 0 0;
+  padding:.85rem 1rem;box-shadow:0 -4px 20px rgba(16,20,40,.18)}
+.big .row{display:flex;justify-content:space-between;align-items:baseline;gap:.75rem;flex-wrap:wrap}
+.big .lbl{font-size:.82rem;opacity:.88;min-width:0;flex:1 1 8rem}
+.big .amt{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;flex:none}
+.big .split{display:flex;justify-content:space-between;gap:.75rem;font-size:.8rem;opacity:.9;
+  margin-top:.4rem;padding-top:.4rem;border-top:1px solid rgba(255,255,255,.28);flex-wrap:wrap}
+.big .split span{min-width:0}
+.gate{margin:.6rem 0 0}
+.bar{height:9px;background:var(--chip);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);border-radius:99px;transition:width .18s}
+.bar i.ok{background:var(--good)}
+/* live status strip under the bar: are you through the threshold, and on what average */
+.stats{display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;
+  flex-wrap:wrap;margin-top:.55rem}
+.stat{min-width:0}
+.stat:last-child{text-align:right}
+.stat .k{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .l{font-size:.78rem;color:var(--muted);margin-top:.05rem}
+.stat.ok .k{color:var(--good)}
+.stat.no .k{color:var(--bad)}
+.stat.ok .l b{color:var(--good)}
+.stat.no .l b{color:var(--bad)}
+details{margin:1rem 0 0;font-size:.88rem}
+summary{cursor:pointer;color:var(--brand);font-weight:600}
+/* the full site names are long, so let the table scroll rather than crush the columns */
+details table{width:100%;min-width:560px;border-collapse:collapse;margin:.6rem 0;font-size:.8rem}
+details th,details td{padding:.44rem .45rem;text-align:center;border-bottom:1px solid var(--line)}
+details th:first-child,details td:first-child{text-align:left}
+details th{background:var(--brand);color:#fff;font-weight:600;border-bottom:0}
+details td:first-child{background:var(--chip);font-weight:600;color:var(--ink)}
+details tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+footer{color:var(--muted);font-size:.76rem;margin-top:1.5rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Bonus Calculator (Ver. Aug-26)</h1>
+  <p class="sub">Enter one week of sign-ups. Everything updates as you type.</p>
+</header>
+
+<div class="card">
+  <h2>Your role</h2>
+  <div class="seg" style="margin-top:.5rem">
+    <button id="rFR" aria-pressed="true">FR — needs 5.0</button>
+    <button id="rTL" aria-pressed="false">TL — needs 7.5</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>This week's sign-ups</h2>
+  <p class="sub" style="margin:.15rem 0 0">One row per sign-up. Enter the amount as the donor
+    signed it and pick the frequency — the monthly value is worked out for you.</p>
+  <div class="gwrap">
+    <div class="ghead">
+      <span>Card type</span><span>Age</span><span>Site</span>
+      <span>Amount ฿</span><span>Frequency</span>
+      <span>Monthly ฿</span><span>Points</span><span></span>
+    </div>
+    <div id="rows"></div>
+  </div>
+  <div class="btnrow">
+    <button class="btn" id="add">+ Add card</button>
+    <button class="btn ghost" id="clear">Reset</button>
+  </div>
+  <div class="gate">
+    <div class="bar"><i id="bar" style="width:0"></i></div>
+    <div class="stats">
+      <div class="stat" id="statPts">
+        <div class="k" id="gateTxt">0.00 of 5.00</div>
+        <div class="l">credit points — <b id="gateSt"></b></div>
+      </div>
+      <div class="stat">
+        <div class="k" id="avgTxt">฿0</div>
+        <div class="l">average donation this week</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Result</h2>
+  <div class="verdict" id="verdict"></div>
+  <div class="sums">
+    <div class="s tot"><span>Total commission</span><b id="sTot">฿0</b></div>
+    <div class="s"><span>70% Paid Now</span><b id="sUp" class="green">฿0</b></div>
+    <div class="s"><span>30% Held (3 months)</span><b id="sHold" class="orange">฿0</b></div>
+  </div>
+  <p class="work" id="work"></p>
+</div>
+
+<details>
+  <summary>Point tables · ตาราง Point</summary>
+  <div class="scroll">
+  <p style="margin:.7rem 0 .2rem;font-weight:600">Credit · บัตรเครดิต</p>
+  <table id="tCC"></table>
+  <p style="margin:.7rem 0 .2rem;font-weight:600">Debit · บัตรเดบิต</p>
+  <table id="tDC"></table>
+  </div>
+  <p class="th" style="margin-top:.6rem">Debit from donors under 35 scores 0 · บัตรเดบิตจากผู้บริจาคอายุต่ำกว่า 35 ปี ได้ 0 Point</p>
+</details>
+
+<details>
+  <summary>The three things that decide your pay · 3 สิ่งสำคัญที่ส่งผลต่อการคำนวณโบนัส</summary>
+  <ol style="padding-left:1.1rem;margin:.6rem 0">
+    <li><b>The threshold counts credit only.</b> Debit Points cannot help you reach it.<br>
+      <span class="th">Points ที่ใช้ผ่านเกณฑ์จะนับจากบัตรเครดิตเท่านั้น</span></li>
+    <li><b>Threshold Points are not paid.</b> Only the Points above it are multiplied by your
+      average donation.<br>
+      <span class="th">Points ส่วนที่ใช้ผ่านเกณฑ์จะไม่ได้นำไปคำนวณโบนัส (เช่น FR ต้องได้ 5 Points ขั้นต่ำเพื่อ Qualify ในสัปดาห์นั้นปิดได้รวม 6 Points = 1 Point นั้นจะนำไปคูณกับยอดการบริจาคเฉลี่ย เพื่อคำนวณจ่ายโบนัส)</span></li>
+    <li><b>Debit is capped at 30%</b> of your paid credit Points.<br>
+      <span class="th">Point ของเดบิตที่จ่ายได้ ต้องไม่เกิน 30% ของ Point เครดิตที่จ่ายได้</span></li>
+  </ol>
+  <p><b>Average Donation and Points are calculated from approved sign-ups with a Rehash
+    recording only.</b><br>
+    <span class="th">ยอดการบริจาคเฉลี่ยและ Point จะคำนวณจาก Sign up ที่ตัดผ่านและมีไฟล์เสียง Rehash เท่านั้น</span></p>
+</details>
+
+<footer>
+  Appendix 2 of the Employment Agreement is the authority · ยึดตามภาคผนวก 2 ของสัญญาจ้าง<br>
+  Estimate only. Approved and rehashed sign-ups only. Pledges above ฿2,000 count as ฿2,000.<br>
+  <span class="th">เป็นการประมาณการเท่านั้น นับเฉพาะยอดที่อนุมัติและมี rehash ยอดเกิน 2,000 บาท นับเป็น 2,000</span>
+</footer>
+</div>
+
+<div class="big">
+  <div class="row"><span class="lbl">Commission this week · ค่าคอมมิชชั่นสัปดาห์นี้</span>
+    <span class="amt" id="total">฿0</span></div>
+  <div class="split"><span>Paid now 70% · จ่ายทันที <b id="up">฿0</b></span>
+    <span>Held 30% · กันไว้ <b id="hold">฿0</b></span></div>
+</div>
+
+<script>
+// Site order as the team reads them. The point rows are re-ordered to match:
+// Schedule D is written Street, Local, TT, Mega/Expo, TT Mega/Expo — the VALUES are unchanged.
+const COLS=["Local","Travel Trip","Local (Mega Booth or Expo)",
+            "Travel Trip (Mega Booth or Expo)","Street"];
+const BANDS=["26-29","30-34","35-39","40+"];
+const CC={"26-29":[1.00,0.75,0.75,0.75,1.00],"30-34":[1.50,1.00,1.00,1.00,1.50],
+          "35-39":[2.50,2.00,1.75,1.50,2.75],"40+":[3.00,2.50,2.25,2.00,3.25]};
+const DC={"26-29":[0,0,0,0,0],"30-34":[0,0,0,0,0],
+          "35-39":[0.75,0.50,0.50,0.25,1.00],"40+":[1.00,0.75,0.75,0.50,1.25]};
+const GATE={FR:5.0,TL:7.5}, DC_CAP=0.30, GIFT_CAP=2000, UPFRONT=0.70;
+
+// what the Amount covers; the monthly value is Amount ÷ this (cl. 1.7 uses the MONTHLY pledge).
+// kept short in English only — the column label above carries the Thai.
+const FREQ=[["per month",1],["per 6 months",6],["per year",12]];
+let role="FR", rows=[];
+const $=id=>document.getElementById(id);
+const pts=(b,c,credit)=>(credit?CC:DC)[b][COLS.indexOf(c)];
+const baht=n=>"฿"+Math.round(n).toLocaleString("en-US");
+const p2=n=>n.toFixed(2);
+
+// donors under 26 are not accepted, so they score nothing
+const bandOf=a=>(!a||a<26)?null:a<30?"26-29":a<35?"30-34":a<40?"35-39":"40+";
+const monthlyOf=r=>(Number(r.amt)||0)/(Number(r.freq)||1);
+const ptsOf=r=>{const b=bandOf(Number(r.age));return b?pts(b,r.site,r.card==="CC"):0;};
+
+function setRole(r){role=r;$("rFR").ariaPressed=r==="FR";$("rTL").ariaPressed=r==="TL";update();}
+$("rFR").onclick=()=>setRole("FR"); $("rTL").onclick=()=>setRole("TL");
+$("add").onclick=()=>{rows.push({card:"CC",age:40,site:"Local",amt:700,freq:1});draw();};
+$("clear").onclick=()=>{rows=[];draw();};
+
+const mk=(t,c,h)=>{const e=document.createElement(t);
+  if(c)e.className=c; if(h!=null)e.innerHTML=h; return e;};
+function field(label,ctrl,wide){
+  const l=mk("label",wide?"wide":null);
+  l.appendChild(mk("span","cl",label)); l.appendChild(ctrl); return l;
+}
+function sel(opts,val,on){
+  const s=document.createElement("select");
+  opts.forEach(([t,v])=>{const o=document.createElement("option");
+    o.textContent=t; o.value=v; s.appendChild(o);});
+  s.value=val; s.onchange=e=>on(e.target.value); return s;
+}
+function num(val,on,step){
+  const i=document.createElement("input");
+  i.type="number"; i.inputMode="numeric"; i.min=0; if(step)i.step=step; i.value=val;
+  i.oninput=e=>on(e.target.value); return i;
+}
+
+// rebuild the rows; each control edits the model in place so typing never loses focus
+function draw(){
+  const box=$("rows"); box.innerHTML="";
+  if(!rows.length){
+    box.appendChild(mk("div","empty","No sign-ups yet — press “Add card”."));
+    update(); return;
+  }
+  rows.forEach((r,i)=>{
+    const g=mk("div","grow"), m=mk("div","calc"), p=mk("div","calc pts");
+    const refresh=()=>{
+      const mo=monthlyOf(r), pt=ptsOf(r);
+      m.textContent=baht(Math.min(mo,GIFT_CAP));
+      m.title=mo>GIFT_CAP?"฿"+Math.round(mo)+" counts as ฿2,000":"";
+      p.textContent=p2(pt); p.classList.toggle("zero",!pt);
+      p.title=pt?"":"scores no points";
+      update();
+    };
+    g.append(
+      mk("div","rno","#"+(i+1)),
+      field("Card type",
+        sel([["Credit","CC"],["Debit","DC"]],r.card,v=>{r.card=v;refresh();})),
+      field("Age",num(r.age,v=>{r.age=v;refresh();})),
+      field("Site",sel(COLS.map(c=>[c,c]),r.site,v=>{r.site=v;refresh();}),true),
+      field("Amount ฿",num(r.amt,v=>{r.amt=v;refresh();},50)),
+      field("Frequency",sel(FREQ,r.freq,v=>{r.freq=v;refresh();}),true),
+      field("Monthly ฿",m),
+      field("Points",p));
+    const x=mk("button","x","×");
+    x.setAttribute("aria-label","Remove this sign-up");
+    x.onclick=()=>{rows.splice(i,1);draw();};
+    g.appendChild(x);
+    box.appendChild(g); refresh();
+  });
+}
+
+function update(){
+  // ---- the model, in the order the contract sets it out
+  const gate=GATE[role];
+  let cc=0, dc=0, gift=0;
+  rows.forEach(r=>{
+    const pt=ptsOf(r);
+    if(r.card==="CC") cc+=pt; else dc+=pt;
+    // every counted sign-up feeds the average, even one worth 0 points
+    gift+=Math.min(monthlyOf(r),GIFT_CAP);
+  });
+  const ok=cc>=gate;
+  const ccPay=ok?cc-gate:0;
+  const cap=ccPay*DC_CAP;
+  const dcPay=ok?Math.min(dc,cap):0;
+  const total=ccPay+dcPay;
+  const avg=rows.length?gift/rows.length:0;
+  const pay=total*avg;
+
+  // ---- gate progress
+  const pct=Math.min(100,gate?cc/gate*100:0);
+  $("bar").style.width=pct+"%"; $("bar").className=ok?"ok":"";
+  $("gateTxt").textContent=`${p2(cc)} of ${p2(gate)}`;
+  $("statPts").className="stat "+(rows.length?(ok?"ok":"no"):"");
+  $("gateSt").textContent=ok?"Gate passed · ผ่านเกณฑ์"
+    :`${p2(gate-cc)} more needed`;
+  $("avgTxt").textContent=baht(avg);
+
+  // ---- result summary
+  const v=$("verdict");
+  if(!rows.length){
+    v.className="verdict"; v.textContent="Add your sign-ups to see the result.";
+  }else if(ok){
+    v.className="verdict ok";
+    v.innerHTML=`✅ Qualified<small>${p2(cc)} credit points — you needed ${p2(gate)}</small>`;
+  }else{
+    v.className="verdict no";
+    v.innerHTML=`❌ Not qualified this week<small>You have ${p2(cc)} of the ${p2(gate)} credit `+
+      `points you need. Debit points cannot count toward this.</small>`;
+  }
+  $("sTot").textContent=baht(pay);
+  $("sUp").textContent=baht(pay*UPFRONT);
+  $("sHold").textContent=baht(pay*(1-UPFRONT));
+  $("work").innerHTML = (!rows.length||!ok) ? "" :
+    `${p2(cc)} credit − ${p2(gate)} threshold = <b>${p2(ccPay)}</b> paid` +
+    (dcPay?`, plus <b>${p2(dcPay)}</b> debit`:"") +
+    (dc>cap+1e-9?` (debit limit is ${p2(cap)}, so ${p2(dc-cap)} is not paid)`:"") +
+    `<br><b>${p2(total)}</b> points × <b>${baht(avg)}</b> average donation = <b>${baht(pay)}</b>`;
+
+  $("total").textContent=baht(pay);
+  $("up").textContent=baht(pay*UPFRONT);
+  $("hold").textContent=baht(pay*(1-UPFRONT));
+}
+
+// point tables
+const tbl=(g)=>`<tr><th>Age · อายุ</th>${COLS.map(c=>`<th>${c}</th>`).join("")}</tr>`+
+  BANDS.map(b=>`<tr><td>${b}</td>${g[b].map(v=>`<td>${p2(v)}</td>`).join("")}</tr>`).join("");
+$("tCC").innerHTML=tbl(CC); $("tDC").innerHTML=tbl(DC);
+
+// start with one row ready to edit
+rows.push({card:"CC",age:40,site:"Local",amt:700,freq:1});
+draw();
+</script>
+</body>
+</html>
