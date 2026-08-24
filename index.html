@@ -158,8 +158,7 @@ const f2=v=>(Math.round(v*100+1e-9)/100).toFixed(2);
 const baht=v=>"฿"+v.toLocaleString("en-US",{minimumFractionDigits:v%1?2:0,maximumFractionDigits:2});
 
 function add(type){rows.push({type,site:1,band:3,amt:700});draw();}
-function seed(){rows=[{type:"C",site:1,band:3,amt:700},{type:"C",site:1,band:3,amt:700},
-  {type:"C",site:1,band:2,amt:700},{type:"D",site:1,band:3,amt:700}];draw();}
+function seed(){rows=[];draw();}
 
 function draw(){
   const tb=document.getElementById("rows");
